@@ -144,7 +144,12 @@ def env_process_hooks():
     and vmnet networking setup and instance attachment to environment.
     """
     def get_network_state(test, params, env):
-        vmn = VMNetwork(test, params, env)
+        from avocado.core.settings import settings
+        sys.path.append(os.path.join(settings.get_value('i2n.common', 'suite_path',
+                                                        default=None),
+                                     "utils"))
+        import intranator_vmnet as ivmnet
+        vmn = ivmnet.IntranatorVMNetwork(test, params, env)
         vmn.setup_host_bridges()
         vmn.setup_host_services()
         env.vmnet = vmn
