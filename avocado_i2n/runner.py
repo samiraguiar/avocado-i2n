@@ -32,6 +32,7 @@ import logging
 import signal
 from multiprocessing import SimpleQueue
 
+from avocado.core.teststatus import STATUSES_MAPPING
 from avocado.plugins.runner import TestRunner
 from virttest import utils_misc
 
@@ -44,6 +45,17 @@ class CartesianRunner(TestRunner):
 
     name = 'traverser'
     description = 'Runs tests through a Cartesian graph traversal'
+
+    @property
+    def all_tests_passed(self):
+        """
+        Whether all tests run under this runner passed.
+
+        :returns: True if all tests passed else False
+        :rtype: bool
+        """
+        mapped_status = {STATUSES_MAPPING[t["status"]] for t in self.job.result.tests}
+        return all(mapped_status)
 
     """running functionality"""
     def run_test_node(self, node, can_retry=False):
@@ -222,6 +234,9 @@ class CartesianRunner(TestRunner):
         try:
             graph.visualize(self.job.logdir)
             self.run_traversal(graph, params)
+            if not self.all_tests_passed:
+                # the summary is a set so only a single failed test is enough
+                summary.add('FAIL')
         except KeyboardInterrupt:
             TEST_LOG.error('Job interrupted by ctrl+c.')
             summary.add('INTERRUPTED')
